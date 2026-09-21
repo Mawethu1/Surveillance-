@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SecureSight Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        * {
+            transition: color 0.3s ease, background 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: radial-gradient(circle at 20% 20%, rgba(39, 141, 255, 0.14), transparent 18%),
+                        radial-gradient(circle at 80% 15%, rgba(175, 85, 255, 0.09), transparent 15%),
+                        radial-gradient(circle at 50% 100%, rgba(40, 234, 255, 0.07), transparent 20%),
+                        #050815;
+            color: #d9e6ff;
+            scroll-behavior: smooth;
+        }
+
+        .dashboard {
+            width: min(980px, 100%);
+            display: grid;
+            gap: 24px;
+            padding: 28px;
+            border-radius: 28px;
+            background: rgba(7, 14, 32, 0.92);
+            border: 1px solid rgba(125, 211, 252, 0.14);
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.45), 0 0 60px rgba(39, 141, 255, 0.1);
+            backdrop-filter: blur(18px);
+            animation: slideInUp 0.6s ease-out;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(125, 211, 252, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(125, 211, 252, 0.6); }
+        }
+
+        .dashboard__header {
+            display: grid;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 18px;
+        }
+
+        .dashboard__title {
+            margin: 0;
+            font-size: clamp(2rem, 3.2vw, 3rem);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #7dd3fc;
+            background: linear-gradient(135deg, #7dd3fc, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .dashboard__subtitle {
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.7;
+            max-width: 760px;
+            color: #b8d5ff;
+        }
+
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(125, 211, 252, 0.08);
+            color: #d9e6ff;
+            font-size: 0.95rem;
+            min-width: 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .status-chip:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(125, 211, 252, 0.16);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(125, 211, 252, 0.15);
+        }
+
+        .status-chip strong {
+            color: #eef4ff;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-chip strong::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        .status-chip.level-low {
+            border-color: rgba(251, 199, 26, 0.22);
+        }
+
+        .status-chip.level-medium {
+            border-color: rgba(251, 146, 60, 0.22);
+        }
+
+        .status-chip.level-high {
+            border-color: rgba(248, 113, 113, 0.22);
+        }
+
+        .threat-indicator.level-low {
+            border-color: rgba(251, 199, 26, 0.22);
+            background: rgba(251, 199, 26, 0.06);
+        }
+
+        .threat-indicator.level-medium {
+            border-color: rgba(251, 146, 60, 0.22);
+            background: rgba(251, 146, 60, 0.06);
+        }
+
+        .threat-indicator.level-high {
+            border-color: rgba(248, 113, 113, 0.22);
+            background: rgba(248, 113, 113, 0.06);
+            animation: glow 1.5s infinite;
+        }
+
+        .status-chip.level-low strong,
+        .metric-card__value.level-low {
+            color: #facc15;
+        }
+
+        .status-chip.level-medium strong,
+        .metric-card__value.level-medium {
+            color: #fb923c;
+        }
+
+        .status-chip.level-high strong,
+        .metric-card__value.level-high {
+            color: #f87171;
+        }
+
+        /* Mission panel styles */
+        .mission-panel {
+            margin-top: 12px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: linear-gradient(90deg, rgba(125,211,252,0.04), rgba(255,255,255,0.01));
+            border: 1px solid rgba(125,211,252,0.06);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            color: #cfe7ff;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mission-panel::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.5), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { left: -100%; }
+            50% { left: 100%; }
+        }
+
+        .threat-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(125, 211, 252, 0.12);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .threat-level-bar {
+            width: 60px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .threat-level-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #facc15, #f87171);
+            border-radius: 999px;
+            transition: width 0.5s ease;
+        }
+
+        .mission-info {
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+            flex: 1;
+        }
+
+        .mission-title {
+            font-weight:800;
+            color:#e8f8ff;
+            letter-spacing:0.03em;
+            font-size: 1.1rem;
+        }
+
+        .mission-sub {
+            color:#9fb7de;
+            font-size:0.95rem;
+        }
+
+        .mission-actions {
+            display:flex;
+            gap:10px;
+        }
+
+        .action-btn {
+            padding:8px 12px;
+            border-radius:10px;
+            border:1px solid rgba(255,255,255,0.04);
+            background:rgba(255,255,255,0.02);
+            color:#dff3ff;
+            font-weight:700;
+            cursor:pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: left 0.3s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(125, 211, 252, 0.2);
+            background: rgba(255,255,255,0.06);
+        }
+
+        .action-btn:hover::before {
+            left: 100%;
+        }
+
+        .action-btn.critical {
+            background:linear-gradient(90deg,#f87171,#fb7185);
+            border:none;
+            box-shadow:0 8px 20px rgba(248,113,113,0.18);
+        }
+
+        .action-btn.critical:hover {
+            box-shadow:0 12px 30px rgba(248,113,113,0.35);
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+        }
+
+        .metric-card {
+            padding: 22px;
+            border-radius: 22px;
+            background: rgba(11, 19, 42, 0.96);
+            border: 1px solid rgba(125, 211, 252, 0.12);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 22px 52px rgba(0, 0, 0, 0.18);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(125, 211, 252, 0.1), rgba(175, 85, 255, 0.05));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(125, 211, 252, 0.24);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 30px 70px rgba(39, 141, 255, 0.2);
+        }
+
+        .metric-card:hover::before {
+            opacity: 1;
+        }
+
+        .metric-card__label {
+            margin: 0 0 10px;
+            color: #94b4ff;
+            font-size: 0.9rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .metric-card__value {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #eef4ff;
+            line-height: 1;
+            background: linear-gradient(135deg, #eef4ff, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .metric-card__hint {
+            margin: 14px 0 0;
+            color: #9db3dd;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .dashboard__grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .dashboard__card {
+            padding: 24px;
+            border-radius: 24px;
+            background: rgba(12, 18, 44, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.04), 0 28px 60px rgba(0, 0, 0, 0.14);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard__card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(125, 211, 252, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .dashboard__card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(125, 211, 252, 0.16);
+            box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.08), 0 40px 80px rgba(39, 141, 255, 0.15);
+        }
+
+        .dashboard__card:hover::before {
+            opacity: 1;
+        }
+
+        .dashboard__card h2 {
+            margin: 0 0 12px;
+            font-size: 1.3rem;
+            color: #eef4ff;
+            background: linear-gradient(135deg, #eef4ff, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .dashboard__card p {
+            margin: 0 0 20px;
+            color: #98b1e6;
+            line-height: 1.7;
+            font-size: 0.98rem;
+        }
+
+        .mode-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 46px;
+            padding: 0 18px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-link::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .mode-link:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .mode-link.primary {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            color: #f8fbff;
+            box-shadow: 0 18px 40px rgba(37, 99, 235, 0.22);
+        }
+
+        .mode-link.primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 25px 50px rgba(37, 99, 235, 0.35);
+        }
+
+        .mode-link.secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #dbeaeb;
+            border: 1px solid rgba(125, 211, 252, 0.16);
+        }
+
+        .mode-link.secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(125, 211, 252, 0.28);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(125, 211, 252, 0.2);
+        }
+
+        .mode-link:hover {
+            transform: translateY(-1px);
+        }
+
+        .note {
+            margin: 0;
+            padding: 20px 22px;
+            border-radius: 20px;
+            background: rgba(10, 17, 34, 0.95);
+            color: #9fb7de;
+            border: 1px solid rgba(125, 211, 252, 0.08);
+            line-height: 1.7;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .note:hover {
+            border-color: rgba(125, 211, 252, 0.16);
+            background: rgba(10, 17, 34, 0.98);
+            box-shadow: 0 12px 30px rgba(39, 141, 255, 0.1);
+        }
+
+        .note a {
+            color: #7dd3fc;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .note a:hover {
+            text-decoration: underline;
+            color: #a78bfa;
+        }
+
+        .metric-card {
+            animation: slideInUp 0.6s ease-out backwards;
+        }
+
+        .metric-card:nth-child(1) { animation-delay: 0.1s; }
+        .metric-card:nth-child(2) { animation-delay: 0.2s; }
+        .metric-card:nth-child(3) { animation-delay: 0.3s; }
+        .metric-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .dashboard__card {
+            animation: slideInUp 0.6s ease-out backwards;
+        }
+
+        .dashboard__card:nth-child(1) { animation-delay: 0.5s; }
+        .dashboard__card:nth-child(2) { animation-delay: 0.6s; }
+
+        @media (max-width: 640px) {
+            .dashboard {
+                padding: 20px;
+            }
+
+            .dashboard__card {
+                padding: 20px;
+            }
+
+            .status-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .mission-panel {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .mission-actions {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+
+            .action-btn {
+                flex: 1;
+                min-width: 80px;
+            }
+
+            .threat-indicator {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="dashboard">
+        <section class="dashboard__header">
+            <h1 class="dashboard__title">Phakathi Command Center</h1>
+            <p class="dashboard__subtitle">Select an operating mode for the SecureSight system. Use motion capture for automated monitoring, or enable face recognition for registered identity tracking.</p>
+            <div class="status-bar">
+                <div class="status-chip">
+                    <span>Camera</span>
+                    <strong id="status-camera">Online</strong>
+                </div>
+                <div class="status-chip">
+                    <span>Alert level</span>
+                    <strong id="status-alert">Low</strong>
+                </div>
+                <div class="status-chip">
+                    <span>Last sync</span>
+                    <strong id="status-sync">--:--</strong>
+                </div>
+            </div>
+
+            <div class="mission-panel" id="mission-panel">
+                <div class="mission-info">
+                    <div class="mission-title" id="mission-title">Operation Midnight Shield</div>
+                    <div class="mission-sub" id="mission-sub">Surveillance posture: passive monitoring. Objective: perimeter observation.</div>
+                </div>
+
+                <div class="threat-indicator" id="threat-indicator">
+                    <span id="threat-level-text">Low</span>
+                    <div class="threat-level-bar">
+                        <div class="threat-level-bar-fill" id="threat-level-fill" style="width: 15%;"></div>
+                    </div>
+                </div>
+
+                <div class="mission-actions">
+                    <button class="action-btn" id="btn-refresh">Refresh Data</button>
+                    <button class="action-btn" id="btn-reset">Reset Cache</button>
+                    <button class="action-btn critical" id="btn-escalate">Escalate Alert</button>
+                </div>
+            </div>
+
+        </section>
+
+        <section class="metrics-grid">
+            <article class="metric-card">
+                <div class="metric-card__label">Active alert level</div>
+                <p id="metric-alert-level" class="metric-card__value">LOW</p>
+                <div class="metric-card__hint">Highest threat level from stored profiles.</div>
+            </article>
+
+            <article class="metric-card">
+                <div class="metric-card__label">Known profiles</div>
+                <p id="metric-profiles" class="metric-card__value">0</p>
+                <div class="metric-card__hint">Total registered faces available for recognition.</div>
+            </article>
+
+            <article class="metric-card">
+                <div class="metric-card__label">Threat profiles</div>
+                <p id="metric-threats" class="metric-card__value">0</p>
+                <div class="metric-card__hint">Profiles flagged as mid or high threat.</div>
+            </article>
+
+            <article class="metric-card">
+                <div class="metric-card__label">Data refreshed</div>
+                <p id="metric-refresh" class="metric-card__value">Now</p>
+                <div class="metric-card__hint">Updated from browser cache on load.</div>
+            </article>
+        </section>
+
+        <div class="dashboard__grid">
+            <article class="dashboard__card">
+                <h2>Motion detection</h2>
+                <p>Activate the motion sensor mode to monitor activity, capture events, and log motion-based alerts in real time.</p>
+                <a class="mode-link primary" href="index.html?mode=motion">Open motion mode</a>
+            </article>
+
+            <article class="dashboard__card">
+                <h2>Face recognition</h2>
+                <p>Activate face recognition to register new profiles, identify known individuals, and surface threat details on detection.</p>
+                <a class="mode-link secondary" href="index.html?mode=face">Open face mode</a>
+            </article>
+        </div>
+
+        <p class="note">For both motion and face capabilities, visit the <a href="index.html">main camera page</a> to enable hybrid monitoring.</p>
+    </main>
+
+    <script>
+        function loadStoredFaces() {
+            try {
+                return JSON.parse(localStorage.getItem('motion-detection-known-faces') || '[]');
+            } catch (err) {
+                console.warn('Invalid stored face data', err);
+                return [];
+            }
+        }
+
+        function computeAlertLevel(faces) {
+            var hasHigh = faces.some(function(face) { return String(face.threatLevel || '').toLowerCase() === 'high'; });
+            if (hasHigh) { return 'High'; }
+            var hasMid = faces.some(function(face) { return String(face.threatLevel || '').toLowerCase() === 'mid'; });
+            if (hasMid) { return 'Medium'; }
+            return 'Low';
+        }
+
+        function updateThreatLevelClasses(level) {
+            var normalized = String(level || '').toLowerCase();
+            var alertChip = document.getElementById('status-alert');
+            var statusChip = alertChip ? alertChip.parentNode : null;
+            var alertValue = document.getElementById('metric-alert-level');
+            var threatLevelFill = document.getElementById('threat-level-fill');
+            var threatLevelText = document.getElementById('threat-level-text');
+            var threatIndicator = document.getElementById('threat-indicator');
+
+            if (alertChip) {
+                alertChip.className = '';
+            }
+
+            if (alertValue) {
+                alertValue.className = 'metric-card__value';
+            }
+
+            if (statusChip) {
+                statusChip.classList.remove('level-low', 'level-medium', 'level-high');
+            }
+
+            if (threatIndicator) {
+                threatIndicator.classList.remove('level-low', 'level-medium', 'level-high');
+            }
+
+            if (normalized === 'high') {
+                if (alertChip) alertChip.classList.add('level-high');
+                if (alertValue) alertValue.classList.add('level-high');
+                if (statusChip) statusChip.classList.add('level-high');
+                if (threatLevelFill) threatLevelFill.style.width = '85%';
+                if (threatLevelText) threatLevelText.textContent = 'High';
+                if (threatIndicator) threatIndicator.classList.add('level-high');
+            } else if (normalized === 'medium') {
+                if (alertChip) alertChip.classList.add('level-medium');
+                if (alertValue) alertValue.classList.add('level-medium');
+                if (statusChip) statusChip.classList.add('level-medium');
+                if (threatLevelFill) threatLevelFill.style.width = '50%';
+                if (threatLevelText) threatLevelText.textContent = 'Medium';
+                if (threatIndicator) threatIndicator.classList.add('level-medium');
+            } else {
+                if (alertChip) alertChip.classList.add('level-low');
+                if (alertValue) alertValue.classList.add('level-low');
+                if (statusChip) statusChip.classList.add('level-low');
+                if (threatLevelFill) threatLevelFill.style.width = '15%';
+                if (threatLevelText) threatLevelText.textContent = 'Low';
+                if (threatIndicator) threatIndicator.classList.add('level-low');
+            }
+        }
+
+        function updateMissionPanel(faces) {
+            var missionSub = document.getElementById('mission-sub');
+            var missionTitle = document.getElementById('mission-title');
+
+            if (!missionSub) return;
+
+            var lastProfile = faces && faces.length ? faces[faces.length - 1] : null;
+            var lastSeenText = lastProfile ? (lastProfile.name + ' (' + (lastProfile.threatLevel || 'N/A') + ')') : 'No profiles';
+
+            missionSub.textContent = 'Profiles: ' + (faces ? faces.length : 0) + ' · Last registered: ' + lastSeenText;
+
+            // Optionally change mission title based on threat posture
+            var posture = computeAlertLevel(faces);
+            if (posture === 'High') {
+                missionTitle.textContent = 'Operation Red Watch';
+            } else if (posture === 'Medium') {
+                missionTitle.textContent = 'Operation Vigilant Shield';
+            } else {
+                missionTitle.textContent = 'Operation Midnight Shield';
+            }
+        }
+
+        function updateMetrics() {
+            var faces = loadStoredFaces();
+            var profiles = faces.length;
+            var threatProfiles = faces.filter(function(face) {
+                var level = String(face.threatLevel || '').toLowerCase();
+                return level === 'high' || level === 'mid';
+            }).length;
+            var alertLevel = computeAlertLevel(faces);
+            var now = new Date();
+            var syncText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            document.getElementById('metric-profiles').textContent = profiles;
+            document.getElementById('metric-threats').textContent = threatProfiles;
+            document.getElementById('metric-alert-level').textContent = alertLevel.toUpperCase();
+            document.getElementById('metric-refresh').textContent = 'at ' + syncText;
+            document.getElementById('status-alert').textContent = alertLevel;
+            document.getElementById('status-sync').textContent = syncText;
+            document.getElementById('status-camera').textContent = 'Online';
+            updateThreatLevelClasses(alertLevel);
+            updateMissionPanel(faces);
+        }
+
+        updateMetrics();
+
+        // Quick action handlers
+        var btnRefresh = document.getElementById('btn-refresh');
+        var btnReset = document.getElementById('btn-reset');
+        var btnEscalate = document.getElementById('btn-escalate');
+
+        if (btnRefresh) {
+            btnRefresh.addEventListener('click', function() {
+                updateMetrics();
+            });
+        }
+
+        if (btnReset) {
+            btnReset.addEventListener('click', function() {
+                localStorage.removeItem('motion-detection-known-faces');
+                updateMetrics();
+            });
+        }
+
+        if (btnEscalate) {
+            btnEscalate.addEventListener('click', function() {
+                // Force alert level to HIGH for demo
+                document.getElementById('metric-alert-level').textContent = 'HIGH';
+                document.getElementById('status-alert').textContent = 'High';
+                updateThreatLevelClasses('High');
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,404 @@
+<html>
+    <head>
+        <title>Motion Detection </title>
+    </head>
+
+    <body> 
+        <div class="wrap">
+            <div class="header-panel">
+                <div class="brand">
+                    <div class="brand__title">Phakathi Surveillance</div>
+                    <div class="brand__subtitle">Advanced threat recognition.</div>
+                </div>
+                <div id="status" class="status">Checking camera access...</div>
+            </div>
+            <div id="container"> </div>
+
+            <div class="face-controls">
+                <div class="face-controls__row">
+                    <label for="face-name" class="face-label">Face name</label>
+                    <input id="face-name" type="text" placeholder="Alice" class="face-input" />
+                </div>
+
+                <div class="face-controls__row">
+                    <label for="face-age" class="face-label">Age</label>
+                    <input id="face-age" type="number" min="0" placeholder="32" class="face-input" />
+                </div>
+
+                <div class="face-controls__row">
+                    <label for="face-threat" class="face-label">Threat level</label>
+                    <select id="face-threat" class="face-input">
+                        <option value="">Select threat level</option>
+                        <option value="low">Low threat</option>
+                        <option value="mid">Mid threat</option>
+                        <option value="high">High threat</option>
+                    </select>
+                </div>
+
+                <div class="face-controls__row">
+                    <label for="face-nationality" class="face-label">Nationality</label>
+                    <input id="face-nationality" type="text" placeholder="Country or nationality" class="face-input" />
+                </div>
+
+                <div class="face-controls__row">
+                    <label for="face-crime" class="face-label">Crime involvement</label>
+                    <textarea id="face-crime" rows="3" placeholder="Describe involvement or notes" class="face-input"></textarea>
+                </div>
+
+                <div class="face-controls__row">
+                    <label for="face-upload" class="face-label">Face photo</label>
+                    <input id="face-upload" type="file" accept="image/*" class="face-input file-input" />
+                </div>
+
+                <button id="register-face" type="button" class="register-button">Register face</button>
+                <p id="known-faces" class="face-list">No known faces registered yet.</p>
+            </div>
+
+            <div id="profile-manager" class="profile-manager">
+                <h2>Saved profiles</h2>
+                <p>Review people stored in HumanData.</p>
+                <div id="profile-manager-list" class="profile-manager__list"></div>
+            </div>
+
+            <div id="recognized-details" class="face-details hidden">
+                <div class="face-details__label">Recognized person</div>
+                <div id="recognized-name" class="face-details__name">No person recognized yet.</div>
+                <div id="recognized-age" class="face-details__meta">Age not set</div>
+                <div id="recognized-threat" class="face-details__meta">Threat level not set</div>
+                <div id="recognized-nationality" class="face-details__meta">Nationality not set</div>
+                <div id="recognized-crime" class="face-details__meta">Crime involvement not set</div>
+            </div>
+
+            <div id="face-status" class="status face-status">Loading face recognition models...</div>
+            <div class="imageDump"></div>
+        </div>
+
+        <style type="text/css">
+            body {
+                min-height: 100vh;
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                color: #d9e6ff;
+                background: radial-gradient(circle at 20% 20%, rgba(39, 141, 255, 0.18), transparent 24%),
+                            radial-gradient(circle at 80% 15%, rgba(175, 85, 255, 0.12), transparent 18%),
+                            radial-gradient(circle at 50% 100%, rgba(40, 234, 255, 0.08), transparent 20%),
+                            #050815;
+            }
+
+            .wrap {
+                width: min(100%, 1180px);
+                padding: 24px;
+                box-sizing: border-box;
+                display: grid;
+                gap: 22px;
+            }
+
+            .header-panel {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 18px;
+                padding: 22px 26px;
+                border-radius: 28px;
+                background: rgba(12, 20, 42, 0.86);
+                border: 1px solid rgba(125, 211, 252, 0.12);
+                box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+                backdrop-filter: blur(18px);
+            }
+
+            #container {
+                width: min(100%, 520px);
+                margin: 0 auto;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .brand__title {
+                margin: 0;
+                font-size: clamp(2rem, 3.3vw, 3.4rem);
+                font-weight: 900;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                color: #7dd3fc;
+            }
+
+            .brand__subtitle {
+                margin: 10px 0 0;
+                max-width: 720px;
+                color: #aac9ff;
+                font-size: 1rem;
+                line-height: 1.6;
+            }
+
+            .status {
+                margin-top: 0;
+                width: min(320px, 100%);
+                background: rgba(5, 13, 27, 0.96);
+                border: 1px solid rgba(125, 211, 252, 0.15);
+                border-radius: 18px;
+                padding: 18px 20px;
+                text-align: center;
+                color: #d4e9ff;
+                font-weight: 600;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 60px rgba(0, 8, 20, 0.38);
+            }
+
+            .status.error {
+                color: #ff8a8a;
+                border-color: rgba(248, 113, 113, 0.2);
+            }
+
+            .status.success {
+                color: #7ef1b5;
+                border-color: rgba(110, 231, 183, 0.25);
+            }
+
+            .status.motion {
+                color: #ffb56b;
+                font-weight: 700;
+                animation: motionPulse 0.6s ease 2;
+            }
+
+            .face-status {
+                margin-top: 10px;
+                font-size: 0.96rem;
+                color: #b8d5ff;
+            }
+
+            .face-status.success {
+                color: #7ef1b5;
+            }
+
+            .face-status.warning {
+                color: #f5c74f;
+            }
+
+            .face-status.error {
+                color: #ff8a8a;
+            }
+
+            .face-controls,
+            .profile-manager,
+            .face-details {
+                padding: 22px;
+                border-radius: 24px;
+                background: rgba(8, 16, 34, 0.88);
+                border: 1px solid rgba(125, 211, 252, 0.12);
+                box-shadow: 0 30px 80px rgba(0, 0, 0, 0.22);
+            }
+
+            .face-controls {
+                margin-top: 0;
+            }
+
+            .face-controls__row {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                margin-bottom: 16px;
+            }
+
+            .face-label {
+                font-size: 0.96rem;
+                font-weight: 700;
+                color: #8ebfff;
+                letter-spacing: 0.02em;
+            }
+
+            .face-input {
+                width: 100%;
+                box-sizing: border-box;
+                padding: 14px 16px;
+                border: 1px solid rgba(119, 147, 255, 0.22);
+                border-radius: 16px;
+                background: rgba(8, 16, 34, 0.96);
+                color: #ebf3ff;
+                font-size: 0.98rem;
+                outline: none;
+                transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            }
+
+            .face-input:focus {
+                border-color: rgba(125, 211, 252, 0.85);
+                box-shadow: 0 0 0 4px rgba(125, 211, 252, 0.12);
+            }
+
+            .face-input::placeholder,
+            textarea.face-input::placeholder {
+                color: #7d95c7;
+            }
+
+            .file-input {
+                padding: 14px 12px;
+            }
+
+            .register-button {
+                width: 100%;
+                padding: 14px 18px;
+                border: none;
+                border-radius: 18px;
+                background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+                color: #f8fbff;
+                font-size: 1rem;
+                font-weight: 800;
+                letter-spacing: 0.03em;
+                cursor: pointer;
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+                box-shadow: 0 20px 40px rgba(37, 99, 235, 0.22);
+            }
+
+            .register-button:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 22px 48px rgba(37, 99, 235, 0.32);
+            }
+
+            .face-list {
+                margin: 16px 0 0;
+                color: #95b4ff;
+                font-size: 0.95rem;
+                line-height: 1.6;
+            }
+
+            .face-details {
+                border: 1px solid rgba(102, 126, 234, 0.16);
+                background: linear-gradient(180deg, rgba(8, 18, 36, 0.95), rgba(12, 20, 44, 0.96));
+            }
+
+            .face-details.hidden {
+                display: none;
+            }
+
+            .face-details__label {
+                font-size: 0.78rem;
+                text-transform: uppercase;
+                letter-spacing: 0.16em;
+                color: #7dd3fc;
+                font-weight: 800;
+            }
+
+            .face-details__name {
+                margin-top: 10px;
+                font-size: 1.3rem;
+                font-weight: 900;
+                color: #eff6ff;
+            }
+
+            .face-details__meta {
+                margin-top: 8px;
+                color: #b8ccff;
+                font-size: 0.96rem;
+                line-height: 1.6;
+            }
+
+            .profile-manager {
+                border: 1px solid rgba(121, 104, 250, 0.16);
+                background: rgba(8, 16, 34, 0.92);
+            }
+
+            .profile-manager h2 {
+                margin: 0 0 8px;
+                font-size: 1.1rem;
+                color: #eef4ff;
+            }
+
+            .profile-manager p {
+                margin: 0 0 16px;
+                color: #94a8d9;
+                font-size: 0.96rem;
+                line-height: 1.7;
+            }
+
+            .profile-manager__list {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+            }
+
+            .profile-card {
+                display: flex;
+                justify-content: space-between;
+                gap: 14px;
+                align-items: center;
+                padding: 16px 18px;
+                border-radius: 18px;
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                background: rgba(10, 18, 38, 0.92);
+            }
+
+            .profile-card__name {
+                font-weight: 800;
+                color: #e2edff;
+            }
+
+            .profile-card__meta {
+                margin-top: 4px;
+                color: #99b2dc;
+                font-size: 0.9rem;
+            }
+
+            .profile-card__delete {
+                border: none;
+                border-radius: 999px;
+                padding: 10px 14px;
+                background: rgba(248, 113, 113, 0.14);
+                color: #ffb3b3;
+                font-weight: 700;
+                cursor: pointer;
+                transition: background 0.2s ease;
+            }
+
+            .profile-card__delete:hover {
+                background: rgba(248, 113, 113, 0.26);
+            }
+
+            .profile-manager__empty {
+                margin: 0;
+                color: #94a8d9;
+                font-size: 0.95rem;
+            }
+
+            @keyframes motionPulse {
+                0% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.02);
+                }
+                100% {
+                    transform: scale(1);
+                }
+            }
+
+            canvas {
+                display: block;
+                width: 100%;
+                max-width: 520px;
+                height: auto;
+                border-radius: 24px;
+                border: 1px solid rgba(109, 145, 255, 0.12);
+                background: #02040d;
+                box-shadow: 0 24px 60px rgba(3, 8, 19, 0.6);
+            }
+
+            .imageDump {
+                display: none;
+            }
+        </style>
+
+        <script
+            src="https://code.jquery.com/jquery-3.7.1.min.js"
+            integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+            crossorigin="anonymous">
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+        <script 
+            src="index.js?v=20260526-1">
+        </script>
+
+
+    </body>
+</html>
